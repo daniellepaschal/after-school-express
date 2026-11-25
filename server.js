@@ -84,6 +84,34 @@ app.post('/orders', async (req, res) => {
   }
 });
 
+// PUT /lessons/:id: updates ANY attribute(s) of a lesson
+app.put('/lessons/:id', async (req, res) => {
+  try {
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid lesson id' });
+    }
+
+    const updates = { ...req.body };
+    delete updates._id;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    const result = await db
+      .collection('lesson')
+      .updateOne({ _id: new ObjectId(req.params.id) }, { $set: updates });
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Lesson not found' });
+    }
+    res.json({ message: 'Lesson updated', modifiedCount: result.modifiedCount });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not update lesson' });
+  }
+});
+
 // Connect to Atlas first, then start listening
 async function start() {
   if (!MONGODB_URI) {
