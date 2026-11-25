@@ -124,7 +124,6 @@ app.get('/search', async (req, res) => {
       return res.json(all);
     }
 
-    // escape special regex characters so the user's text is treated as plain text
     const regex = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     const filter = {
@@ -141,6 +140,35 @@ app.get('/search', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Search failed' });
+  }
+});
+
+// GET /teachers: all teachers
+app.get('/teachers', async (req, res) => {
+  try {
+    const teachers = await db.collection('teacher').find({}).toArray();
+    res.json(teachers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not fetch teachers' });
+  }
+});
+
+// GET /teachers/:id/lessons: all lessons taught by one teacher
+app.get('/teachers/:id/lessons', async (req, res) => {
+  try {
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid teacher id' });
+    }
+    const teacher = await db.collection('teacher').findOne({ _id: new ObjectId(req.params.id) });
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+    const lessons = await db.collection('lesson').find({ _id: { $in: teacher.lessonIds } }).toArray();
+    res.json(lessons);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not fetch teacher lessons' });
   }
 });
 
