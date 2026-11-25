@@ -52,7 +52,6 @@ app.get('/lessons', async (req, res) => {
 });
 
 // POST /orders: saves a new order in the "order" collection
-// body: { name, phone, items: [{ lessonId, spaces }] }
 app.post('/orders', async (req, res) => {
   try {
     const { name, phone, items } = req.body;
@@ -112,6 +111,36 @@ app.put('/lessons/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Could not update lesson' });
+  }
+});
+
+// GET /search?q=...: lessons where topic, location, price or space contains q
+app.get('/search', async (req, res) => {
+  try {
+    const q = (req.query.q || '').toString().trim();
+
+    if (!q) {
+      const all = await db.collection('lesson').find({}).toArray();
+      return res.json(all);
+    }
+
+    // escape special regex characters so the user's text is treated as plain text
+    const regex = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const filter = {
+      $or: [
+        { topic: { $regex: regex, $options: 'i' } },
+        { location: { $regex: regex, $options: 'i' } },
+        { $expr: { $regexMatch: { input: { $toString: '$price' }, regex: regex } } },
+        { $expr: { $regexMatch: { input: { $toString: '$space' }, regex: regex } } }
+      ]
+    };
+
+    const results = await db.collection('lesson').find(filter).toArray();
+    res.json(results);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Search failed' });
   }
 });
 
