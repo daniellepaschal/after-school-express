@@ -1,9 +1,15 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { MongoClient } = require('mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const MONGODB_URI = process.env.MONGODB_URI;
+const DB_NAME = process.env.DB_NAME || 'afterschool';
+
+let db;
 
 app.use(cors());
 app.use(express.json());
@@ -29,6 +35,22 @@ app.get('/', (req, res) => {
   res.json({ message: 'After School Club API is running. Try GET /lessons' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Connect to Atlas first, then start listening
+async function start() {
+  if (!MONGODB_URI) {
+    console.error('Missing MONGODB_URI. Create a .env file (see .env.example).');
+    process.exit(1);
+  }
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  db = client.db(DB_NAME);
+  console.log(`Connected to MongoDB Atlas, database "${DB_NAME}"`);
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+start().catch(err => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });
