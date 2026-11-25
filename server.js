@@ -172,6 +172,32 @@ app.get('/teachers/:id/lessons', async (req, res) => {
   }
 });
 
+// GET /enrolment/:lessonid: number of spaces already purchased for a lesson
+app.get('/enrolment/:lessonid', async (req, res) => {
+  try {
+    if (!isValidId(req.params.lessonid)) {
+      return res.status(400).json({ error: 'Invalid lesson id' });
+    }
+
+    const lessonId = new ObjectId(req.params.lessonid);
+    const orders = await db.collection('order').find({ 'items.lessonId': lessonId }).toArray();
+
+    let enrolment = 0;
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        if (item.lessonId.equals(lessonId)) {
+          enrolment += item.spaces;
+        }
+      });
+    });
+
+    res.json({ lessonId: req.params.lessonid, enrolment: enrolment });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not get enrolment' });
+  }
+});
+
 // Connect to Atlas first, then start listening
 async function start() {
   if (!MONGODB_URI) {
