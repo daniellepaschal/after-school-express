@@ -35,6 +35,17 @@ app.get('/', (req, res) => {
   res.json({ message: 'After School Club API is running. Try GET /lessons' });
 });
 
+// GET /lessons: returns all lessons as JSON
+app.get('/lessons', async (req, res) => {
+  try {
+    const lessons = await db.collection('lesson').find({}).toArray();
+    res.json(lessons);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not fetch lessons' });
+  }
+});
+
 // Connect to Atlas first, then start listening
 async function start() {
   if (!MONGODB_URI) {
